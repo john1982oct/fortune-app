@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Start Your Journey</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Cinzel', serif;
+      background: linear-gradient(to bottom, #0f172a 0%, #1e293b 100%), url('https://www.transparenttextures.com/patterns/stardust.png');
+      background-blend-mode: overlay;
+      background-repeat: repeat;
+      background-size: cover;
+      color: #fefae0;
+    }
+    .card {
+      background-color: rgba(15, 23, 42, 0.85);
+      border-radius: 1rem;
+      padding: 2rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+    }
+    label {
+      font-weight: bold;
+    }
+    input, select {
+      border: 1px solid #fefae0;
+      background-color: #fefae0;
+      color: #1e293b;
+    }
+    .glow-text {
+      color: #fde68a;
+      text-shadow: 0 0 10px #fcd34d, 0 0 30px #facc15;
+    }
+
+.glow-mascot {
+  animation: glowPulse 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 6px #facc15);
+  box-shadow: 0 0 10px #facc15, 0 0 20px #fde68a;
+}
+@keyframes glowPulse {
+  0% {
+    box-shadow: 0 0 10px #facc15, 0 0 20px #fde68a;
+  }
+  50% {
+    box-shadow: 0 0 20px #fde68a, 0 0 40px #facc15;
+  }
+  100% {
+    box-shadow: 0 0 10px #facc15, 0 0 20px #fde68a;
+  }
+}
+
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col items-center justify-center p-8">
+  <div class="text-center max-w-xl">
+    <h1 class="text-6xl glow-text font-bold mb-10">My Wealthy Date</h1>
+
+    <div class="card space-y-6">
+      <form id="fortuneForm">
+        <div class="text-left">
+          <label for="dob" class="block text-lg mb-1">Birth Date:</label>
+          <input type="date" id="dob" name="dob" class="w-full text-black px-4 py-2 rounded" required />
+        </div>
+        <div class="text-left">
+          <label for="time" class="block text-lg mb-1">Birth Time:</label>
+          <input type="time" id="time" name="time" class="w-full text-black px-4 py-2 rounded" required />
+        </div>
+        <div class="text-left">
+          <label for="gender" class="block text-lg mb-1">Gender:</label>
+          <select id="gender" name="gender" class="w-full text-black px-4 py-2 rounded mb-4" required>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+        <div class="text-center mt-4">
+          <button type="submit" class="bg-yellow-400 text-black text-lg font-bold px-8 py-3 rounded-full shadow hover:bg-yellow-300 transition-all">Fortune Key</button>
+        </div>
+      </form>
+    </div>
+
+<!-- 🧙‍♂️ Fortune Mascot Block -->
+<!-- ✨ Fortune Mascot Block with glow and space -->
+<div id="mascotBox" class="mt-10 flex items-start justify-center gap-6 hidden">
+  <img src="{{ url_for('static', filename='character_1.png') }}" alt="Mascot"
+       class="w-24 h-24 glow-mascot z-10 relative" />
+  <div class="relative bg-white text-black px-6 py-4 rounded-lg shadow-lg max-w-sm text-center">
+    <p class="font-bold text-lg">“Your destiny has arrived!<br>Scroll down for your fortune.”</p>
+    <div class="absolute left-[-20px] top-6 w-0 h-0 border-t-[10px] border-t-transparent border-b-[10px] border-b-transparent border-r-[20px] border-r-white"></div>
+  </div>
+</div>
+
+    <div id="result" class="card hidden text-left bg-gray-800 text-white mt-8" style="white-space: pre-line;">
+      <h2 class="text-2xl mb-4 text-yellow-300 font-bold">🌟 Your Results</h2>
+      <p><strong>Zodiac Sign:</strong> <span id="zodiac"></span></p>
+      <p><strong>Personality:</strong> <span id="personality"></span></p>
+      <p><strong>Lucky Windfall Day:</strong> <span id="luckyDay"></span> (Score: <span id="score"></span>)</p>
+      <p><strong>Your Lucky Numbers:</strong> <span id="luckyNumbers"></span></p>
+      <p><strong>Life Path Number:</strong> <span id="lifePath"></span></p>
+      <p><strong>Meaning:</strong> <span id="lifePathMeaning"></span></p>
+      <hr class="my-4 border-white/20" />
+      <p><strong>Character Traits:</strong> <span id="character"></span></p>
+      <p><strong>Romantic Outlook:</strong> <span id="love"></span></p>
+      <p><strong>Wealth Outlook:</strong> <span id="wealth"></span></p>
+      <p><strong>Mindset:</strong> <span id="mindset"></span></p>
+      <p><strong>Emotional Energy:</strong> <span id="emotion"></span></p>
+      <p><strong>Habits:</strong> <span id="habits"></span></p>
+      <p><strong>Creative Spark:</strong> <span id="creativity"></span></p>
+      <p><strong>Quote of the Day:</strong> <em id="quote"></em></p>
+
+      <div class="mt-6 flex flex-wrap gap-4">
+        <button onclick="downloadPDF()" class="bg-blue-500 hover:bg-blue-400 px-4 py-2 rounded text-white">📄 Download</button>
+        <button onclick="openWhatsApp()" class="bg-green-600 hover:bg-green-500 px-4 py-2 rounded text-white">💬 WhatsApp</button>
+        <button onclick="shareFacebook()" class="bg-blue-700 hover:bg-blue-600 px-4 py-2 rounded text-white">📘 Facebook</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showResults(data) {
+      document.getElementById('zodiac').textContent = data.zodiac;
+      document.getElementById('personality').textContent = data.personality;
+      document.getElementById('luckyDay').textContent = data.lucky_day;
+      document.getElementById('score').textContent = data.score;
+      document.getElementById('luckyNumbers').textContent = data.lucky_numbers.join(' • ');
+      document.getElementById('lifePath').textContent = data.life_path;
+      document.getElementById('lifePathMeaning').textContent = data.life_path_meaning;
+      document.getElementById('character').textContent = data.character;
+      document.getElementById('love').textContent = data.love;
+      document.getElementById('wealth').textContent = data.wealth;
+      document.getElementById('mindset').textContent = data.mindset;
+      document.getElementById('emotion').textContent = data.emotion;
+      document.getElementById('habits').textContent = data.habits;
+      document.getElementById('creativity').textContent = data.creativity;
+      document.getElementById('quote').textContent = data.quote;
+      document.getElementById('result').classList.remove('hidden');
+      document.getElementById('mascotBox').classList.remove('hidden');
+    }
+
+    function downloadPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const content = document.getElementById("result").innerText;
+      const lines = doc.splitTextToSize(content, 180);
+      doc.text(lines, 10, 20);
+      doc.save("my_fortune.pdf");
+    }
+
+    function openWhatsApp() {
+      const text = encodeURIComponent(document.getElementById("result").innerText);
+      const link = `https://wa.me/?text=${text}`;
+      window.open(link, '_blank');
+    }
+
+    function shareFacebook() {
+      const url = encodeURIComponent(window.location.href);
+      const text = encodeURIComponent(document.getElementById("result").innerText);
+      const fbLink = `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`;
+      window.open(fbLink, '_blank');
+    }
+
+    document.getElementById('fortuneForm').addEventListener('submit', async function(event) {
+      event.preventDefault();
+      const dob = document.getElementById('dob').value;
+      const time = document.getElementById('time').value;
+      const gender = document.getElementById('gender').value;
+
+      const response = await fetch('/fortune', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dob, time, gender })
+      });
+
+      const data = await response.json();
+      showResults(data);
+    });
+  </script>
+</body>
+</html>
