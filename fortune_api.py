@@ -154,7 +154,15 @@ def generate_fortune():
         "emotion": next((trait.split(":", 1)[1].strip() for trait in profile.get("mini_traits", []) if trait.lower().startswith("emotion")), ""),
         "habits": next((trait.split(":", 1)[1].strip() for trait in profile.get("mini_traits", []) if trait.lower().startswith("habits")), ""),
         "creativity": next((trait.split(":", 1)[1].strip() for trait in profile.get("mini_traits", []) if trait.lower().startswith("creativity")), ""),
-        "curiosity": next((trait.split(":", 1)[1].strip() for trait in profile.get("mini_traits", []) if trait.lower().startswith("curiosity")), "")
+        "curiosity": next((trait.split(":", 1)[1].strip() for trait in profile.get("mini_traits", []) if trait.lower().startswith("curiosity")), ""),
+
+        # NEW advice fields 👇
+        "character_advice": profile.get("character_advice", ""),
+        "love_advice": profile.get("love_advice", ""),
+        "wealth_advice": profile.get("wealth_advice", ""),
+        "mindset_tip": profile.get("mindset_tip", ""),
+        "emotion_advice": profile.get("emotion_advice", ""),
+        "habits_insight": profile.get("habits_insight", "")
     })
 
 if __name__ == "__main__":
