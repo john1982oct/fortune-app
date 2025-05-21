@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Wealthy Date</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Cinzel', serif;
+      background: linear-gradient(to bottom, #0f172a 0%, #1e293b 100%), url('https://www.transparenttextures.com/patterns/stardust.png');
+      background-blend-mode: overlay;
+      background-repeat: repeat;
+      background-size: cover;
+      color: #fefae0;
+    }
+    .card {
+      background-color: rgba(15, 23, 42, 0.85);
+      border-radius: 1rem;
+      padding: 2rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+    }
+    label {
+      font-weight: bold;
+    }
+    input, select {
+      border: 1px solid #fefae0;
+      background-color: #fefae0;
+      color: #1e293b;
+    }
+    .glow-text {
+      color: #fde68a;
+      text-shadow: 0 0 10px #fcd34d, 0 0 30px #facc15;
+    }
+    .glow-mascot img {
+      animation: glowPulse 2s ease-in-out infinite;
+      filter: drop-shadow(0 0 6px #facc15);
+    }
+    @keyframes glowPulse {
+      0% { filter: drop-shadow(0 0 6px #facc15); }
+      50% { filter: drop-shadow(0 0 16px #fde68a); }
+      100% { filter: drop-shadow(0 0 6px #facc15); }
+    }
+    #luckyNumbers {
+      word-break: break-word;
+      white-space: normal;
+    }
+    .section-title {
+      font-size: 1.25rem;
+      color: #facc15;
+      margin-top: 1.5rem;
+      margin-bottom: 0.5rem;
+      font-weight: bold;
+      text-shadow: 0 0 6px #facc15;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-8">
+  <div class="text-center max-w-xl overflow-y-auto max-h-[90vh] p-4 bg-black bg-opacity-30 rounded-xl">
+    <h1 class="text-6xl glow-text font-bold mb-10">My Wealthy Date</h1>
+
+    <div class="card space-y-6">
+      <form id="fortuneForm">
+        <div class="text-left">
+          <label for="dob" class="block text-lg mb-1">Birth Date:</label>
+          <input type="date" id="dob" name="dob" class="w-full text-black px-4 py-2 rounded" required />
+        </div>
+        <div class="text-left">
+          <label for="time" class="block text-lg mb-1">Birth Time:</label>
+          <input type="time" id="time" name="time" class="w-full text-black px-4 py-2 rounded" required />
+        </div>
+        <div class="text-left">
+          <label for="gender" class="block text-lg mb-1">Gender:</label>
+          <select id="gender" name="gender" class="w-full text-black px-4 py-2 rounded mb-4" required>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
+        <div class="text-center mt-4">
+          <button type="submit" class="bg-yellow-400 text-black text-lg font-bold px-8 py-3 rounded-full shadow hover:bg-yellow-300 transition-all">Fortune Key</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="mascotBox" class="mt-10 flex items-start justify-center gap-6 hidden glow-mascot">
+      <img src="{{ url_for('static', filename='character_1.png') }}" alt="Mascot" class="w-24 h-24" />
+      <div class="relative bg-white text-black px-6 py-4 rounded-lg shadow-lg max-w-sm text-center">
+        <p class="font-bold text-lg">“Your destiny has arrived!<br>Scroll down for your fortune.”</p>
+        <div class="absolute left-[-20px] top-6 w-0 h-0 border-t-[10px] border-t-transparent border-b-[10px] border-b-transparent border-r-[20px] border-r-white"></div>
+      </div>
+    </div>
+
+    <div id="result" class="card hidden text-left bg-gray-800 text-white mt-8" style="white-space: pre-line;">
+      <h2 class="text-2xl mb-4 text-yellow-300 font-bold">🌟 Your Results</h2>
+      <p class="section-title">🔭 Zodiac Sign</p>
+      <p><span id="zodiac"></span></p>
+
+      <p class="section-title">🧠 Personality</p>
+      <p><span id="personality"></span></p>
+
+      <div class="my-4 p-4 bg-yellow-200 text-yellow-900 font-bold rounded-lg border border-yellow-400 shadow-lg">
+        🗓️ Lucky Windfall Day: <span id="luckyDay"></span>
+        <span class="ml-2 text-sm font-semibold">(Score: <span id="score"></span>)</span>
+      </div>
+
+      <div class="mb-4 p-4 bg-gradient-to-r from-purple-600 via-pink-500 to-yellow-400 text-white font-bold rounded-lg border border-white shadow-md">
+        🔢 Your Lucky Numbers: <span id="luckyNumbers"></span>
+      </div>
+
+      <p class="section-title">📈 Life Path</p>
+      <p><strong>Number:</strong> <span id="lifePath"></span></p>
+      <p><strong>Meaning:</strong> <span id="lifePathMeaning"></span></p>
+
+      <hr class="my-4 border-white/20" />
+
+      <p class="section-title">💫 Character Traits</p>
+      <p><span id="character"></span></p>
+      <p class="text-sm italic text-yellow-200 mt-1"><span id="characterAdvice"></span></p>
+
+      <p class="section-title">💖 Romantic Outlook</p>
+      <p><span id="love"></span></p>
+      <p class="text-sm italic text-yellow-200 mt-1"><span id="loveAdvice"></span></p>
+
+      <p class="section-title">💰 Wealth Outlook</p>
+      <p><span id="wealth"></span></p>
+      <p class="text-sm italic text-yellow-200 mt-1"><span id="wealthAdvice"></span></p>
+
+      <p class="section-title">🧭 Mindset</p>
+      <p><span id="mindset"></span></p>
+      <p class="text-sm italic text-yellow-200 mt-1"><span id="mindsetTip"></span></p>
+
+      <p class="section-title">🌊 Emotional Energy</p>
+      <p><span id="emotion"></span></p>
+      <p class="text-sm italic text-yellow-200 mt-1"><span id="emotionAdvice"></span></p>
+
+      <p class="section-title">🔁 Habits</p>
+      <p><span id="habits"></span></p>
+      <p class="text-sm italic text-yellow-200 mt-1"><span id="habitsInsight"></span></p>
+
+      <p class="section-title">🎨 Creative Spark</p>
+      <p><span id="creativity"></span></p>
+      <p class="text-sm italic text-yellow-200 mt-1"><span id="creativityAdvice"></span></p>
+
+      <p class="section-title">📜 Quote of the Day</p>
+      <p><em id="quote"></em></p>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('fortuneForm').addEventListener('submit', async function(event) {
+      event.preventDefault();
+      const dob = document.getElementById('dob').value;
+      const time = document.getElementById('time').value;
+      const gender = document.getElementById('gender').value;
+
+      const response = await fetch('/fortune', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dob, time, gender })
+      });
+
+      const data = await response.json();
+      if (data.error) return alert(data.error);
+
+      document.getElementById('zodiac').textContent = data.zodiac;
+      document.getElementById('personality').textContent = data.personality;
+      document.getElementById('luckyDay').textContent = data.lucky_day;
+      document.getElementById('score').textContent = data.score;
+      document.getElementById('luckyNumbers').textContent = data.lucky_numbers.join(' • ');
+      document.getElementById('lifePath').textContent = data.life_path;
+      document.getElementById('lifePathMeaning').textContent = data.life_path_meaning;
+      document.getElementById('character').textContent = data.character;
+      document.getElementById('characterAdvice').textContent = data.character_advice;
+      document.getElementById('love').textContent = data.love;
+      document.getElementById('loveAdvice').textContent = data.love_advice;
+      document.getElementById('wealth').textContent = data.wealth;
+      document.getElementById('wealthAdvice').textContent = data.wealth_advice;
+      document.getElementById('mindset').textContent = data.mindset;
+      document.getElementById('mindsetTip').textContent = data.mindset_tip;
+      document.getElementById('emotion').textContent = data.emotion;
+      document.getElementById('emotionAdvice').textContent = data.emotion_advice;
+      document.getElementById('habits').textContent = data.habits;
+      document.getElementById('habitsInsight').textContent = data.habits_insight;
+      document.getElementById('creativity').textContent = data.creativity;
+      document.getElementById('creativityAdvice').textContent = data.creativity_advice;
+      document.getElementById('quote').textContent = data.quote;
+
+      document.getElementById('result').classList.remove('hidden');
+      document.getElementById('mascotBox').classList.remove('hidden');
+    });
+  </script>
+</body>
+</html>
