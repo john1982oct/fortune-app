@@ -10,6 +10,10 @@ app = Flask(__name__)
 with open("birthdays_full.json", "r", encoding="utf-8") as f:
     birthday_profiles = json.load(f)
 
+@app.route('/thankyou')
+def thankyou():
+    return render_template('thankyou.html')
+
 # Zodiac sign determination
 def get_zodiac_sign(month, day):
     zodiac_dates = [
