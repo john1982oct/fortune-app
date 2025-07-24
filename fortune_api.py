@@ -54,6 +54,11 @@ def get_ming_gong():
     gender = request.args.get("gender", "阳男")
     result = calculate_ming_gong_by_hour(gender, birth_hour)
     return jsonify(result)
+@app.route('/minggong_yin_json')
+def load_minggong_yin_json():
+    with open("data/ziwei_zai_wu/minggong_yin.json", "r", encoding="utf-8") as f:
+        minggong_data = json.load(f)
+    return jsonify(minggong_data)
 
 # Zodiac sign determination
 def get_zodiac_sign(month, day):
