@@ -3,6 +3,41 @@ from flask import Flask, request, jsonify, render_template
 import json
 from datetime import datetime, timedelta
 import random
+# 🔮 MING GONG CALCULATOR - Step 1 Integration
+
+earthly_branches = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
+
+hour_branch_mapping = {
+    (23, 0): '子', (1, 2): '丑', (3, 4): '寅', (5, 6): '卯', (7, 8): '辰',
+    (9, 10): '巳', (11, 12): '午', (13, 14): '未', (15, 16): '申',
+    (17, 18): '酉', (19, 20): '戌', (21, 22): '亥'
+}
+
+def get_hour_branch(hour: int):
+    for (start, end), branch in hour_branch_mapping.items():
+        if start <= hour <= end:
+            return branch
+    return None
+
+ming_gong_by_hour = {
+    '子': '寅', '丑': '卯', '寅': '辰', '卯': '巳', '辰': '巳',
+    '巳': '午', '午': '未', '未': '申', '申': '酉', '酉': '戌',
+    '戌': '亥', '亥': '子'
+}
+
+def calculate_ming_gong_by_hour(gender: str, birth_hour: int):
+    hour_branch = get_hour_branch(birth_hour)
+    if not hour_branch:
+        return {"error": "Invalid birth hour"}
+    if gender.lower() in ['male', '阳男']:
+        ming_gong = ming_gong_by_hour.get(hour_branch)
+    else:
+        ming_gong = "Mapping not defined for this gender yet"
+    return {
+        "hour_branch": hour_branch,
+        "ming_gong": ming_gong,
+        "gender": gender
+    }
 
 app = Flask(__name__)
 
@@ -13,6 +48,12 @@ with open("birthdays_full.json", "r", encoding="utf-8") as f:
 @app.route('/thankyou')
 def thankyou():
     return render_template('thankyou.html')
+@app.route("/minggong")
+def get_ming_gong():
+    birth_hour = int(request.args.get("hour", 8))
+    gender = request.args.get("gender", "阳男")
+    result = calculate_ming_gong_by_hour(gender, birth_hour)
+    return jsonify(result)
 
 # Zodiac sign determination
 def get_zodiac_sign(month, day):
