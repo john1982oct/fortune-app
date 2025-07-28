@@ -70,7 +70,16 @@ def get_ming_gong():
 
     result = calculate_ming_gong_by_hour(gender, birth_hour)
     return jsonify(result)
-
+    
+@app.route("/ziwei_test")
+def ziwei_test():
+    try:
+        with open("ziwei_patterns/ziwei_zai_wu.json", "r", encoding="utf-8") as f:
+            ziwei_data = json.load(f)
+        return jsonify(ziwei_data)
+    except Exception as e:
+        return jsonify({"error": str(e)})
+        
 # 🧠 Zodiac Sign + Personality
 def get_zodiac_sign_and_personality(month, day):
     zodiac_dates = [
