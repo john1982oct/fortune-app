@@ -22,9 +22,11 @@ def load_ziwei_pattern(filename="ziwei_zai_wu.json"):
 def ziwei_test():
     try:
         pattern = load_ziwei_pattern()
-        return jsonify(pattern)
-    except Exception as e:
-        return jsonify({"error": str(e)})
+       return app.response_class(
+    response=json.dumps(pattern, ensure_ascii=False, indent=2),
+    status=200,
+    mimetype='application/json'
+)
 
 @app.route("/thankyou")
 def thankyou():
