@@ -46,18 +46,20 @@ def load_ziwei_pattern(filename="ziwei_zai_wu.json"):
     with open(path, "r", encoding="utf-8") as file:
         return json.load(file)
 
-# --------------------------
 app = Flask(__name__)
 
-# Load birthday profile data once
-with open("birthdays_full.json", "r", encoding="utf-8") as f:
-    birthday_profiles = json.load(f)
+# ✅ SAFE LOAD with fallback
+try:
+    with open("birthdays_full.json", "r", encoding="utf-8") as f:
+        birthday_profiles = json.load(f)
+except Exception as e:
+    birthday_profiles = {}
+    print("⚠️ Failed to load birthdays_full.json:", e)
 
 @app.route('/thankyou')
 def thankyou():
     return render_template('thankyou.html')
 
-# 🧪 Zi Wei Test Pattern Loader
 @app.route("/ziwei_test")
 def ziwei_test():
     try:
@@ -70,11 +72,9 @@ def ziwei_test():
 def get_ming_gong():
     birth_hour = int(request.args.get("hour", 8))
     gender = request.args.get("gender", "阳男")
-
     result = calculate_ming_gong_by_hour(gender, birth_hour)
     return jsonify(result)
 
-# 🧠 Zodiac Sign + Personality
 def get_zodiac_sign_and_personality(month, day):
     zodiac_dates = [
         ((1, 20), (2, 18), "Aquarius", "Innovative and independent."),
