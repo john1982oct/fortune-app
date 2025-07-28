@@ -1,9 +1,10 @@
-
 from flask import Flask, request, jsonify, render_template
 import json
+import os
 from datetime import datetime, timedelta
 import random
-# 🔮 MING GONG CALCULATOR - Step 1 Integration
+
+# 🌟 MING GONG CALCULATOR - Step 1 Integration
 
 earthly_branches = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥']
 
@@ -39,29 +40,38 @@ def calculate_ming_gong_by_hour(gender: str, birth_hour: int):
         "gender": gender
     }
 
+# 💫 Helper: Load Zi Wei Pattern (e.g. ziwei_zai_wu.json)
+def load_ziwei_pattern(filename="ziwei_zai_wu.json"):
+    path = os.path.join("ziwei_patterns", filename)
+    with open(path, "r", encoding="utf-8") as file:
+        return json.load(file)
+
+# --------------------------
 app = Flask(__name__)
 
-# Load birthday profile data
+# Load birthday profile data once
 with open("birthdays_full.json", "r", encoding="utf-8") as f:
     birthday_profiles = json.load(f)
 
 @app.route('/thankyou')
 def thankyou():
     return render_template('thankyou.html')
+
+# 🧪 Zi Wei Test Pattern Loader
+@app.route("/ziwei_test")
+def ziwei_test():
+    pattern = load_ziwei_pattern()
+    return jsonify(pattern)
+
 @app.route("/minggong")
 def get_ming_gong():
     birth_hour = int(request.args.get("hour", 8))
     gender = request.args.get("gender", "阳男")
 
-    with open("data/ziwei_zai_wu/minggong_yin.json", "r", encoding="utf-8") as f:
-        minggong_yin_data = json.load(f)
-
-    result = minggong_yin_data.get(str(birth_hour), {"message": "未找到命宫资料"})
-
+    result = calculate_ming_gong_by_hour(gender, birth_hour)
     return jsonify(result)
 
-
-# 🧠 Helper: Zodiac Sign + Personality
+# 🧠 Zodiac Sign + Personality
 def get_zodiac_sign_and_personality(month, day):
     zodiac_dates = [
         ((1, 20), (2, 18), "Aquarius", "Innovative and independent."),
