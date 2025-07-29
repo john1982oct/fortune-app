@@ -37,29 +37,31 @@ def thankyou():
 @app.route("/minggong")
 def get_ming_gong():
     def get_hour_branch(hour):
-        hour = hour % 24  # make sure 23 or 0 won't break
+        hour = hour % 24  # Ensure valid hour from 0–23
         hour_ranges = [
             ((23, 0), '子'), ((1, 2), '丑'), ((3, 4), '寅'), ((5, 6), '卯'),
             ((7, 8), '辰'), ((9, 10), '巳'), ((11, 12), '午'), ((13, 14), '未'),
             ((15, 16), '申'), ((17, 18), '酉'), ((19, 20), '戌'), ((21, 22), '亥')
         ]
-for (start, end), branch in hour_ranges:
-    if start < end:
-        if start <= hour <= end:
-            return branch
-    else:
-        if hour >= start or hour <= end:  # Handles wraparound like (23, 0)
-            return branch
+
+        for (start, end), branch in hour_ranges:
+            if start < end:
+                if start <= hour <= end:
+                    return branch
+            else:  # Handles wraparound like (23, 0)
+                if hour >= start or hour <= end:
+                    return branch
+        return None
 
     def calculate_ming_gong_by_hour(gender, birth_hour):
         hour_branch = get_hour_branch(birth_hour)
         if not hour_branch:
             return {"error": "Invalid hour"}
-        
+
         map_mg = {
-            '子': '寅', '丑': '卯', '寅': '辰', '卯': '巳',
-            '辰': '午', '巳': '未', '午': '申', '未': '酉',
-            '申': '戌', '酉': '亥', '戌': '子', '亥': '丑'
+            '子': '寅', '丑': '丑', '寅': '子', '卯': '亥',
+            '辰': '戌', '巳': '酉', '午': '申', '未': '未',
+            '申': '午', '酉': '巳', '戌': '辰', '亥': '卯',
         }
 
         return app.response_class(
