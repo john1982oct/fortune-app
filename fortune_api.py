@@ -84,24 +84,41 @@ def zodiac_sign():
     month = int(request.args.get("month", 1))
     day = int(request.args.get("day", 1))
 
-    zodiac_list = [
-        "Capricorn", "Aquarius", "Pisces", "Aries", "Taurus", "Gemini",
-        "Cancer", "Leo", "Virgo", "Libra", "Scorpio", "Sagittarius"
-    ]
-    cutoffs = [
-        (1, 20), (2, 19), (3, 21), (4, 20), (5, 21), (6, 21),
-        (7, 23), (8, 23), (9, 23), (10, 23), (11, 22), (12, 22)
+    zodiac_dates = [
+        ((1, 20), (2, 18), "Aquarius"),
+        ((2, 19), (3, 20), "Pisces"),
+        ((3, 21), (4, 19), "Aries"),
+        ((4, 20), (5, 20), "Taurus"),
+        ((5, 21), (6, 20), "Gemini"),
+        ((6, 21), (7, 22), "Cancer"),
+        ((7, 23), (8, 22), "Leo"),
+        ((8, 23), (9, 22), "Virgo"),
+        ((9, 23), (10, 22), "Libra"),
+        ((10, 23), (11, 21), "Scorpio"),
+        ((11, 22), (12, 21), "Sagittarius"),
+        ((12, 22), (1, 19), "Capricorn")
     ]
 
-    for i, (m, d) in enumerate(cutoffs):
-        if (month < m) or (month == m and day < d):
-            sign = zodiac_list[i - 1]
-            break
-    else:
-        sign = zodiac_list[-1]
+    def is_in_range(start, end, m, d):
+        if start[0] < end[0] or (start[0] == end[0] and start[1] <= end[1]):
+            return (m == start[0] and d >= start[1]) or \
+                   (m == end[0] and d <= end[1]) or \
+                   (start[0] < m < end[0])
+        else:
+            return (m == start[0] and d >= start[1]) or \
+                   (m == end[0] and d <= end[1]) or \
+                   (m > start[0] or m < end[0])
+
+    for start, end, sign in zodiac_dates:
+        if is_in_range(start, end, month, day):
+            return app.response_class(
+                response=json.dumps({"zodiac": sign}, ensure_ascii=False, indent=2),
+                status=200,
+                mimetype='application/json'
+            )
 
     return app.response_class(
-        response=json.dumps({"zodiac": sign}, ensure_ascii=False, indent=2),
+        response=json.dumps({"zodiac": "Unknown"}, ensure_ascii=False, indent=2),
         status=200,
         mimetype='application/json'
     )
