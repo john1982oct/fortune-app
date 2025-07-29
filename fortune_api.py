@@ -43,10 +43,13 @@ def get_ming_gong():
             ((7, 8), '辰'), ((9, 10), '巳'), ((11, 12), '午'), ((13, 14), '未'),
             ((15, 16), '申'), ((17, 18), '酉'), ((19, 20), '戌'), ((21, 22), '亥')
         ]
-        for (start, end), branch in hour_ranges:
-            if start <= hour <= end or (start == 23 and hour == 0):
-                return branch
-        return None
+for (start, end), branch in hour_ranges:
+    if start < end:
+        if start <= hour <= end:
+            return branch
+    else:
+        if hour >= start or hour <= end:  # Handles wraparound like (23, 0)
+            return branch
 
     def calculate_ming_gong_by_hour(gender, birth_hour):
         hour_branch = get_hour_branch(birth_hour)
