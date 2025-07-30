@@ -135,76 +135,87 @@ function downloadStyledPDF() {
   });
 }
 
-    function openWhatsApp() {
-      const text = encodeURIComponent(document.getElementById("result").innerText);
-      window.open(`https://wa.me/?text=${text}`, '_blank');
-    }
+function openWhatsApp() {
+  const text = encodeURIComponent(document.getElementById("result").innerText);
+  window.open(`https://wa.me/?text=${text}`, '_blank');
+}
 
-    function shareFacebook() {
-      const url = encodeURIComponent(window.location.href);
-      const text = encodeURIComponent(document.getElementById("result").innerText);
-      window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank');
-    }
+function shareFacebook() {
+  const url = encodeURIComponent(window.location.href);
+  const text = encodeURIComponent(document.getElementById("result").innerText);
+  window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${text}`, '_blank');
+}
 
-    document.getElementById('fortuneForm').addEventListener('submit', async function(event) {
-      event.preventDefault();
-      const dob = document.getElementById('dob').value;
-      const time = document.getElementById('time').value;
-      const gender = document.getElementById('gender').value;
+document.getElementById('fortuneForm').addEventListener('submit', async function(event) {
+  event.preventDefault();
+  const dob = document.getElementById('dob').value;
+  const time = document.getElementById('time').value;
+  const gender = document.getElementById('gender').value;
+  const [hour, minute] = time.split(":");
 
-      const response = await fetch('/fortune', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ dob, time, gender })
-      });
+  const fortuneRes = await fetch('/fortune', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dob, time, gender })
+  });
 
-      const data = await response.json();
-      if (data.error) return alert(data.error);
+  const fortune = await fortuneRes.json();
+  if (fortune.error) return alert(fortune.error);
 
-      const result = document.getElementById("result");
-      result.innerHTML = `
-        <h2 class="text-2xl mb-4 text-yellow-300 font-bold">🌟 Your Results</h2>
-        <p class="section-title">🔭 Zodiac Sign</p>
-        <p>${data.zodiac}</p>
-        <p class="section-title">🧠 Personality</p>
-        <p>${data.personality}</p>
-        <div class="my-4 p-4 bg-yellow-200 text-yellow-900 font-bold rounded-lg border border-yellow-400 shadow-lg">
-          🗓️ Lucky Windfall Day: ${data.lucky_day} <span class="ml-2 text-sm font-semibold">(Score: ${data.score})</span>
-        </div>
-        <div class="mb-4 p-4 bg-gradient-to-r from-purple-600 via-pink-500 to-yellow-400 text-white font-bold rounded-lg border border-white shadow-md">
-          🔢 Your Lucky Numbers: ${data.lucky_numbers.join(' • ')}
-        </div>
-        <p class="section-title">📈 Life Path</p>
-        <p><strong>Number:</strong> ${data.life_path}</p>
-        <p><strong>Meaning:</strong> ${data.life_path_meaning}</p>
-        <hr class="my-4 border-white/20" />
-        <p class="section-title">💫 Character Traits</p>
-        <p>${data.character}</p>
-        <p class="text-sm italic text-yellow-200 mt-1">${data.character_advice}</p>
-        <p class="section-title">💖 Romantic Outlook</p>
-        <p>${data.love}</p>
-        <p class="text-sm italic text-yellow-200 mt-1">${data.love_advice}</p>
-        <p class="section-title">💰 Wealth Outlook</p>
-        <p>${data.wealth}</p>
-        <p class="text-sm italic text-yellow-200 mt-1">${data.wealth_advice}</p>
-        <p class="section-title">🧭 Mindset</p>
-        <p>${data.mindset}</p>
-        <p class="text-sm italic text-yellow-200 mt-1">${data.mindset_tip}</p>
-        <p class="section-title">🌊 Emotional Energy</p>
-        <p>${data.emotion}</p>
-        <p class="text-sm italic text-yellow-200 mt-1">${data.emotion_advice}</p>
-        <p class="section-title">🔁 Habits</p>
-        <p>${data.habits}</p>
-        <p class="text-sm italic text-yellow-200 mt-1">${data.habits_insight}</p>
-        <p class="section-title">🎨 Creative Spark</p>
-        <p>${data.creativity}</p>
-        <p class="text-sm italic text-yellow-200 mt-1">${data.creativity_advice}</p>
-        <p class="section-title">📜 Quote of the Day</p>
-        <p><em>${data.quote}</em></p>
-      `;
-      result.style.display = 'block';
-      document.getElementById('shareButtons').style.display = 'flex';
-    });
+  const zodiacData = await (await fetch(`/zodiac?birthdate=${dob}`)).json();
+  const ziweiData = await (await fetch(`/ziwei_test?birthdate=${dob}&hour=${hour}&minute=${minute}&gender=${gender}`)).json();
+  const mingData = await (await fetch(`/minggong?birthdate=${dob}&hour=${hour}&minute=${minute}&gender=${gender}`)).json();
+
+  const result = document.getElementById("result");
+  result.innerHTML = `
+    <h2 class="text-2xl mb-4 text-yellow-300 font-bold">🌟 Your Results</h2>
+    <p class="section-title">🔭 Zodiac Sign</p>
+    <p>${zodiacData.zodiac}</p>
+    <p class="section-title">🌌 Zi Wei Star Location</p>
+    <p>${ziweiData.ziwei_palace}</p>
+    <p class="section-title">🧭 Ming Gong Position</p>
+    <p>${mingData.minggong}</p>
+
+    <p class="section-title">🧠 Personality</p>
+    <p>${fortune.personality}</p>
+    <div class="my-4 p-4 bg-yellow-200 text-yellow-900 font-bold rounded-lg border border-yellow-400 shadow-lg">
+      🗓️ Lucky Windfall Day: ${fortune.lucky_day} <span class="ml-2 text-sm font-semibold">(Score: ${fortune.score})</span>
+    </div>
+    <div class="mb-4 p-4 bg-gradient-to-r from-purple-600 via-pink-500 to-yellow-400 text-white font-bold rounded-lg border border-white shadow-md">
+      🔢 Your Lucky Numbers: ${fortune.lucky_numbers.join(' • ')}
+    </div>
+    <p class="section-title">📈 Life Path</p>
+    <p><strong>Number:</strong> ${fortune.life_path}</p>
+    <p><strong>Meaning:</strong> ${fortune.life_path_meaning}</p>
+    <hr class="my-4 border-white/20" />
+    <p class="section-title">💫 Character Traits</p>
+    <p>${fortune.character}</p>
+    <p class="text-sm italic text-yellow-200 mt-1">${fortune.character_advice}</p>
+    <p class="section-title">💖 Romantic Outlook</p>
+    <p>${fortune.love}</p>
+    <p class="text-sm italic text-yellow-200 mt-1">${fortune.love_advice}</p>
+    <p class="section-title">💰 Wealth Outlook</p>
+    <p>${fortune.wealth}</p>
+    <p class="text-sm italic text-yellow-200 mt-1">${fortune.wealth_advice}</p>
+    <p class="section-title">🧭 Mindset</p>
+    <p>${fortune.mindset}</p>
+    <p class="text-sm italic text-yellow-200 mt-1">${fortune.mindset_tip}</p>
+    <p class="section-title">🌊 Emotional Energy</p>
+    <p>${fortune.emotion}</p>
+    <p class="text-sm italic text-yellow-200 mt-1">${fortune.emotion_advice}</p>
+    <p class="section-title">🔁 Habits</p>
+    <p>${fortune.habits}</p>
+    <p class="text-sm italic text-yellow-200 mt-1">${fortune.habits_insight}</p>
+    <p class="section-title">🎨 Creative Spark</p>
+    <p>${fortune.creativity}</p>
+    <p class="text-sm italic text-yellow-200 mt-1">${fortune.creativity_advice}</p>
+    <p class="section-title">📜 Quote of the Day</p>
+    <p><em>${fortune.quote}</em></p>
+  `;
+
+  result.style.display = 'block';
+  document.getElementById('shareButtons').style.display = 'flex';
+});
   </script>
 </body>
 </html>
