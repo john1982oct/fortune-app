@@ -85,8 +85,16 @@ def get_ming_gong():
 # 🧠 Zodiac Sign logic (optional)
 @app.route("/zodiac")
 def zodiac_sign():
-    month = int(request.args.get("month", 1))
-    day = int(request.args.get("day", 1))
+    birthdate_str = request.args.get("birthdate", None)
+
+    if not birthdate_str:
+        return jsonify({"zodiac": "Unknown"})
+
+    try:
+        birthdate = datetime.strptime(birthdate_str, "%Y-%m-%d")
+        month, day = birthdate.month, birthdate.day
+    except ValueError:
+        return jsonify({"zodiac": "Invalid date format"})
 
     zodiac_dates = [
         ((1, 20), (2, 18), "Aquarius"),
@@ -115,11 +123,10 @@ def zodiac_sign():
 
     for start, end, sign in zodiac_dates:
         if is_in_range(start, end, month, day):
-            return app.response_class(
-                response=json.dumps({"zodiac": sign}, ensure_ascii=False, indent=2),
-                status=200,
-                mimetype='application/json'
-            )
+            return jsonify({"zodiac": sign})
+
+    return jsonify({"zodiac": "Unknown"})
+
 
     return app.response_class(
         response=json.dumps({"zodiac": "Unknown"}, ensure_ascii=False, indent=2),
