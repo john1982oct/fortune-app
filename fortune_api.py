@@ -127,6 +127,49 @@ def zodiac_sign():
         mimetype='application/json'
     )
 
+@app.route("/fortune", methods=["POST"])
+def fortune():
+    try:
+        data = request.get_json()
+        dob = data.get("dob")       # Format: "YYYY-MM-DD"
+        time = data.get("time")     # Format: "HH:MM"
+        gender = data.get("gender")
+
+        birthdate = datetime.strptime(dob, "%Y-%m-%d")
+        month, day = birthdate.month, birthdate.day
+
+        birthday_key = f"{month:02d}-{day:02d}"
+        profile = birthday_profiles.get(birthday_key, {})
+
+        # Dummy fortune logic for now
+        return jsonify({
+            "zodiac": "Placeholder",
+            "personality": profile.get("character", "Mysterious being..."),
+            "lucky_day": "Every Thursday",
+            "score": 88,
+            "lucky_numbers": [3, 8, 21],
+            "life_path": 5,
+            "life_path_meaning": "Adventurous & expressive",
+            "character": profile.get("character", ""),
+            "character_advice": "Be bold, not reckless.",
+            "love": profile.get("love", ""),
+            "love_advice": "Love flows when you pause.",
+            "wealth": profile.get("wealth", "Potential untapped."),
+            "wealth_advice": "Seize the hidden doors.",
+            "mindset": "Visionary but scattered",
+            "mindset_tip": "Focus on fewer goals.",
+            "emotion": "Deep but guarded",
+            "emotion_advice": "Let others in.",
+            "habits": "Spontaneous, sometimes inconsistent",
+            "habits_insight": "Routine builds power.",
+            "creativity": "Very high",
+            "creativity_advice": "Don’t let doubt delay release.",
+            "quote": profile.get("quote", "Stars whisper to those who listen.")
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 # 🔥 FLASK RUNNER
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
