@@ -3,6 +3,7 @@ import json, os, random
 from datetime import datetime
 from openai import OpenAI
 import os
+from flask_cors import CORS
 
 # Do NOT pass proxies or anything else
 client = OpenAI()  # reads OPENAI_API_KEY from the environment automatically
@@ -212,3 +213,7 @@ def oracle():
 # 🔥 FLASK RUNNER
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    # allow only your site; if you're testing from other places temporarily use "*"
+CORS(app, resources={r"/oracle": {"origins": ["https://aidoshop.com", "https://www.aidoshop.com"]}})
+
+
