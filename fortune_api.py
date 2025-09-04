@@ -1,10 +1,12 @@
 from flask import Flask, request, jsonify, render_template
 import json, os, random
 from datetime import datetime
-from openai import OpenAI   # ✨ new import for GPT Oracle
+from openai import OpenAI
+import os
 
-# init OpenAI client (will read API key from Render env variable)
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Do NOT pass proxies or anything else
+client = OpenAI()  # reads OPENAI_API_KEY from the environment automatically
+
 app = Flask(__name__)
 
 @app.route("/")
