@@ -1,7 +1,10 @@
 from flask import Flask, request, jsonify, render_template
 import json, os, random
 from datetime import datetime
+from openai import OpenAI   # ✨ new import for GPT Oracle
 
+# init OpenAI client (will read API key from Render env variable)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 app = Flask(__name__)
 
 @app.route("/")
@@ -173,6 +176,33 @@ def fortune():
             "creativity_advice": "Don’t let doubt delay release.",
             "quote": profile.get("quote", "Stars whisper to those who listen.")
         })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ✨ Destiny Oracle endpoint
+@app.route("/oracle", methods=["POST"])
+def oracle():
+    try:
+        data = request.get_json()
+        dob = data.get("dob")       # YYYY-MM-DD
+        tob = data.get("tob")       # HH:MM
+        tz = data.get("tz", "Asia/Singapore")
+
+        # Prompt for GPT
+        prompt = f"""
+        You are a mystical Oracle. Write a short poetic destiny insight
+        for someone born on {dob} at {tob} ({tz}).
+        """
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=180
+        )
+
+        message = response.choices[0].message.content.strip()
+        return jsonify({"result": message})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
