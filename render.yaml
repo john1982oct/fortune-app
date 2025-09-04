@@ -1,8 +1,7 @@
-
 services:
-  - type: web
-    name: fortune-app
-    env: python
-    plan: free
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "python fortune_api.py"
+- type: web
+  name: fortune-app
+  env: python
+  plan: free
+  buildCommand: "pip install -r requirements.txt"
+  startCommand: "gunicorn fortune_api:app"
