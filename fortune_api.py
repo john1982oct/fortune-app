@@ -2,18 +2,20 @@ from flask import Flask, request, jsonify, render_template
 import json, os, random
 from datetime import datetime
 from openai import OpenAI
-import os
 from flask_cors import CORS
 
-# Do NOT pass proxies or anything else
-client = OpenAI()  # reads OPENAI_API_KEY from the environment automatically
+# OpenAI client (reads OPENAI_API_KEY from env on Render)
+client = OpenAI()
 
 app = Flask(__name__)
+
+# CORS — allow only your site (use "*" temporarily if you need to test elsewhere)
+CORS(app, resources={r"/oracle": {"origins": ["https://aidoshop.com", "https://www.aidoshop.com"]}})
 
 @app.route("/")
 def home():
     return render_template("index.html")
-    
+
 # 🌟 Load birthday data
 try:
     with open("birthdays_full.json", "r", encoding="utf-8") as f:
@@ -47,18 +49,17 @@ def thankyou():
 @app.route("/minggong")
 def get_ming_gong():
     def get_hour_branch(hour):
-        hour = hour % 24  # Ensure valid hour from 0–23
+        hour = hour % 24
         hour_ranges = [
             ((23, 0), '子'), ((1, 2), '丑'), ((3, 4), '寅'), ((5, 6), '卯'),
             ((7, 8), '辰'), ((9, 10), '巳'), ((11, 12), '午'), ((13, 14), '未'),
             ((15, 16), '申'), ((17, 18), '酉'), ((19, 20), '戌'), ((21, 22), '亥')
         ]
-
         for (start, end), branch in hour_ranges:
             if start < end:
                 if start <= hour <= end:
                     return branch
-            else:  # Handles wraparound like (23, 0)
+            else:
                 if hour >= start or hour <= end:
                     return branch
         return None
@@ -92,10 +93,8 @@ def get_ming_gong():
 @app.route("/zodiac")
 def zodiac_sign():
     birthdate_str = request.args.get("birthdate", None)
-
     if not birthdate_str:
         return jsonify({"zodiac": "Unknown"})
-
     try:
         birthdate = datetime.strptime(birthdate_str, "%Y-%m-%d")
         month, day = birthdate.month, birthdate.day
@@ -117,35 +116,24 @@ def zodiac_sign():
         ((12, 22), (1, 19), "Capricorn")
     ]
 
-    def is_in_range(start, end, m, d):
+    def in_range(start, end, m, d):
         if start[0] < end[0] or (start[0] == end[0] and start[1] <= end[1]):
-            return (m == start[0] and d >= start[1]) or \
-                   (m == end[0] and d <= end[1]) or \
-                   (start[0] < m < end[0])
+            return (m == start[0] and d >= start[1]) or (m == end[0] and d <= end[1]) or (start[0] < m < end[0])
         else:
-            return (m == start[0] and d >= start[1]) or \
-                   (m == end[0] and d <= end[1]) or \
-                   (m > start[0] or m < end[0])
+            return (m == start[0] and d >= start[1]) or (m == end[0] and d <= end[1]) or (m > start[0] or m < end[0])
 
     for start, end, sign in zodiac_dates:
-        if is_in_range(start, end, month, day):
+        if in_range(start, end, month, day):
             return jsonify({"zodiac": sign})
-
     return jsonify({"zodiac": "Unknown"})
 
-
-    return app.response_class(
-        response=json.dumps({"zodiac": "Unknown"}, ensure_ascii=False, indent=2),
-        status=200,
-        mimetype='application/json'
-    )
-
+# 🧧 Basic JSON fortune (uses your birthday profiles)
 @app.route("/fortune", methods=["POST"])
 def fortune():
     try:
         data = request.get_json()
-        dob = data.get("dob")       # Format: "YYYY-MM-DD"
-        time = data.get("time")     # Format: "HH:MM"
+        dob = data.get("dob")       # YYYY-MM-DD
+        time = data.get("time")     # HH:MM
         gender = data.get("gender")
 
         birthdate = datetime.strptime(dob, "%Y-%m-%d")
@@ -154,7 +142,6 @@ def fortune():
         birthday_key = f"{month:02d}-{day:02d}"
         profile = birthday_profiles.get(birthday_key, {})
 
-        # Dummy fortune logic for now
         return jsonify({
             "zodiac": "Placeholder",
             "personality": profile.get("character", "Mysterious being..."),
@@ -179,11 +166,10 @@ def fortune():
             "creativity_advice": "Don’t let doubt delay release.",
             "quote": profile.get("quote", "Stars whisper to those who listen.")
         })
-
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ✨ Destiny Oracle endpoint
+# ✨ GPT Destiny Oracle endpoint
 @app.route("/oracle", methods=["POST"])
 def oracle():
     try:
@@ -192,7 +178,6 @@ def oracle():
         tob = data.get("tob")       # HH:MM
         tz = data.get("tz", "Asia/Singapore")
 
-        # Prompt for GPT
         prompt = f"""
         You are a mystical Oracle. Write a short poetic destiny insight
         for someone born on {dob} at {tob} ({tz}).
@@ -203,17 +188,11 @@ def oracle():
             messages=[{"role": "user", "content": prompt}],
             max_tokens=180
         )
-
         message = response.choices[0].message.content.strip()
         return jsonify({"result": message})
-
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# 🔥 FLASK RUNNER
+# 🔥 Dev runner (Render uses gunicorn, so this block is ignored there)
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
-    # allow only your site; if you're testing from other places temporarily use "*"
-CORS(app, resources={r"/oracle": {"origins": ["https://aidoshop.com", "https://www.aidoshop.com"]}})
-
-
