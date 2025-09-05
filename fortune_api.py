@@ -1,36 +1,25 @@
-# fortune_api.py
 from flask import Flask, request, jsonify, render_template
-import json, os, random, hashlib
+import json, os, random
 from datetime import datetime, timedelta
 from openai import OpenAI
 from flask_cors import CORS
 
-# OpenAI client (reads OPENAI_API_KEY from env on Render)
+# OpenAI client
 client = OpenAI()
 
 app = Flask(__name__)
 
-# --- CORS: allow only your production origins (explicit, no wildcard)
+# --- CORS
 ALLOWED_ORIGINS = {"https://aidoshop.com", "https://www.aidoshop.com"}
 CORS(
     app,
-    resources={
-        r"/oracle":   {"origins": list(ALLOWED_ORIGINS)},
-        r"/fortune":  {"origins": list(ALLOWED_ORIGINS)},
-        r"/zodiac":   {"origins": list(ALLOWED_ORIGINS)},
-        r"/minggong": {"origins": list(ALLOWED_ORIGINS)},
-        r"/ziwei_test": {"origins": list(ALLOWED_ORIGINS)},
-    },
+    resources={r"/*": {"origins": list(ALLOWED_ORIGINS)}},
 )
 
 @app.after_request
 def add_cors_headers(resp):
-    """
-    Extra safety: ensure preflight/response headers are present for our routes.
-    This helps when a proxy/CDN strips headers or when Flask-CORS misses a path.
-    """
     origin = request.headers.get("Origin")
-    if origin in ALLOWED_ORIGINS and request.path in ("/oracle", "/fortune", "/zodiac", "/minggong", "/ziwei_test"):
+    if origin in ALLOWED_ORIGINS:
         resp.headers["Access-Control-Allow-Origin"] = origin
         resp.headers["Vary"] = "Origin"
         resp.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
@@ -41,39 +30,85 @@ def add_cors_headers(resp):
 def home():
     return render_template("index.html")
 
-# ---------- Data loaders ----------
-# Birthday data
+# ---------- Load data ----------
 try:
     with open("birthdays_full.json", "r", encoding="utf-8") as f:
         birthday_profiles = json.load(f)
-except Exception as e:
+except Exception:
     birthday_profiles = {}
-    print("⚠️ Failed to load birthdays:", e)
 
-# Zi Wei pattern loader
-def load_ziwei_pattern(filename="ziwei_zai_wu.json"):
-    path = os.path.join("ziwei_patterns", filename)
-    with open(path, "r", encoding="utf-8") as file:
-        return json.load(file)
+# ---------- Zodiac ----------
+def get_zodiac_sign(month, day):
+    zodiac_dates = [
+        ((1, 20), (2, 18), "Aquarius"),
+        ((2, 19), (3, 20), "Pisces"),
+        ((3, 21), (4, 19), "Aries"),
+        ((4, 20), (5, 20), "Taurus"),
+        ((5, 21), (6, 20), "Gemini"),
+        ((6, 21), (7, 22), "Cancer"),
+        ((7, 23), (8, 22), "Leo"),
+        ((8, 23), (9, 22), "Virgo"),
+        ((9, 23), (10, 22), "Libra"),
+        ((10, 23), (11, 21), "Scorpio"),
+        ((11, 22), (12, 21), "Sagittarius"),
+        ((12, 22), (1, 19), "Capricorn")
+    ]
+    for start, end, sign in zodiac_dates:
+        if (month == start[0] and day >= start[1]) or (month == end[0] and day <= end[1]):
+            return sign
+    return "Capricorn"
 
-@app.route("/ziwei_test")
-def ziwei_test():
-    try:
-        pattern = load_ziwei_pattern()
-        return app.response_class(
-            response=json.dumps(pattern, ensure_ascii=False, indent=2),
-            status=200,
-            mimetype="application/json",
-        )
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+# ---------- Life Path meanings ----------
+life_path_meanings = {
+    1: "Leader and pioneer. Independent, driven, full of fresh ideas.",
+    2: "Peacemaker and partner. Balanced, diplomatic, emotionally intelligent.",
+    3: "Creative communicator. Inspires through words, art, and joyful energy.",
+    4: "Builder and stabilizer. Values structure, hard work, trustworthiness.",
+    5: "Adventurer and freedom seeker. Thrives on change, travel, excitement.",
+    6: "Nurturer and healer. Protects loved ones, creates harmony at home.",
+    7: "Thinker and seeker. Introspective, intuitive, spiritually aware.",
+    8: "Ambitious powerhouse. Destined for success, leadership, wealth.",
+    9: "Humanitarian dreamer. Uplifts others with wisdom and compassion.",
+    11: "Spiritual illuminator. Inspires masses with intuition.",
+    22: "Master builder. Turns big dreams into lasting legacies.",
+    33: "Compassionate teacher. Leads with unconditional love."
+}
 
-@app.route("/thankyou")
-def thankyou():
-    return render_template("thankyou.html")
+# ---------- Lucky Numbers ----------
+def calculate_lucky_numbers(birthdate_obj):
+    digits = [int(d) for d in birthdate_obj.strftime("%Y%m%d")]
+    life_path = sum(digits)
+    while life_path > 9 and life_path not in [11, 22, 33]:
+        life_path = sum([int(d) for d in str(life_path)])
 
-# ---------- Helpers / utilities ----------
-def _get_hour_branch(hour: int):
+    day = birthdate_obj.day
+    month = birthdate_obj.month
+
+    num1 = life_path + day
+    num2 = life_path + month
+    num3 = life_path * 3
+    num4 = life_path * life_path
+
+    all_nums = list(set([
+        life_path,
+        day,
+        month,
+        num1 % 100,
+        num2 % 100,
+        num3 % 100,
+        num4 % 100,
+    ]))
+
+    final_nums = sorted([n for n in all_nums if 1 <= n <= 49])[:7]  # 7 numbers
+
+    return {
+        "lucky_numbers": final_nums,
+        "life_path": life_path,
+        "life_path_meaning": life_path_meanings.get(life_path, "A unique force with uncommon traits.")
+    }
+
+# ---------- Zi Wei Ming Gong ----------
+def _get_hour_branch(hour):
     hour = hour % 24
     ranges = [
         ((23, 0), "子"), ((1, 2), "丑"), ((3, 4), "寅"), ((5, 6), "卯"),
@@ -89,159 +124,42 @@ def _get_hour_branch(hour: int):
                 return br
     return None
 
-# Western zodiac (helper for both /zodiac and /fortune)
-def _get_western_zodiac(month:int, day:int) -> str:
-    zodiac_dates = [
-        ((1,20),(2,18),"Aquarius"), ((2,19),(3,20),"Pisces"),
-        ((3,21),(4,19),"Aries"),    ((4,20),(5,20),"Taurus"),
-        ((5,21),(6,20),"Gemini"),   ((6,21),(7,22),"Cancer"),
-        ((7,23),(8,22),"Leo"),      ((8,23),(9,22),"Virgo"),
-        ((9,23),(10,22),"Libra"),   ((10,23),(11,21),"Scorpio"),
-        ((11,22),(12,21),"Sagittarius"), ((12,22),(1,19),"Capricorn"),
-    ]
-    for (sm, sd), (em, ed), name in zodiac_dates:
-        if (month == sm and day >= sd) or (month == em and day <= ed):
-            return name
-    return "Capricorn"
-
-# Numerology helpers
-def _reduce(n:int) -> int:
-    """Reduce to 1–9; keep master 11/22/33."""
-    while n > 9 and n not in (11,22,33):
-        n = sum(int(d) for d in str(n))
-    return n
-
-def _life_path(dt: datetime) -> int:
-    return _reduce(sum(int(d) for d in dt.strftime("%Y%m%d")))
-
-_LIFE_PATH_MEANINGS = {
-    1: "Leader and pioneer. You are independent, driven, and full of fresh ideas.",
-    2: "Peacemaker and partner. You bring balance, diplomacy, and emotional intelligence.",
-    3: "Creative communicator. You inspire through words, art, and joyful energy.",
-    4: "Builder and stabilizer. You value structure, hard work, and trustworthiness.",
-    5: "Adventurer and freedom seeker. You thrive on change, travel, and excitement.",
-    6: "Nurturer and healer. You protect those you love and create harmony at home.",
-    7: "Thinker and seeker. You are introspective, intuitive, and spiritually aware.",
-    8: "Ambitious powerhouse. You’re destined for success, leadership, and wealth.",
-    9: "Humanitarian and dreamer. You uplift others with your wisdom and compassion.",
-    11: "Spiritual illuminator. You are highly intuitive and meant to inspire masses.",
-    22: "Master builder. You turn big dreams into real-world legacies.",
-    33: "Compassionate teacher. You lead through unconditional love and service.",
-}
-
-def _lucky_7(dt: datetime) -> list[int]:
-    """
-    7 unique numbers in 1..49, deterministic from DOB, lightly biased
-    toward life-path resonance & DOB digits.
-    """
-    lp = _life_path(dt)
-    seed = int(hashlib.sha1(dt.strftime("%Y%m%d").encode("utf-8")).hexdigest(), 16)
-    rng = random.Random(seed)
-
-    base = list(range(1, 50))
-    favored = {n for n in base if n % 9 == lp % 9}
-    digits = [int(x) for x in dt.strftime("%Y%m%d")]
-    favored |= {d for d in digits if 1 <= d <= 49}
-
-    weighted = []
-    for n in base:
-        weighted.extend([n] * (3 if n in favored else 1))
-
-    picks, seen = [], set()
-    while len(picks) < 7 and weighted:
-        n = rng.choice(weighted)
-        if n not in seen:
-            picks.append(n); seen.add(n)
-        weighted = [w for w in weighted if w != n]
-    return sorted(picks)
-
-def _partner_date(dt_birth: datetime) -> str:
-    """
-    Choose a relationship-friendly date in next 60 days:
-    match (month+day) reduced with life path OR weekday resonance.
-    Deterministic using DOB as seed.
-    """
-    lp = _life_path(dt_birth)
-    today = datetime.now().date()
-    cands = []
-    for i in range(1, 61):
-        d = today + timedelta(days=i)
-        if _reduce(d.month + d.day) == lp or _reduce(d.isoweekday()) == _reduce(lp):
-            cands.append(d)
-    if not cands:
-        cands = [today + timedelta(days=lp)]
-    seed = int(hashlib.sha1(dt_birth.strftime("%Y%m%d").encode("utf-8")).hexdigest(), 16)
-    return str(cands[seed % len(cands)])
-
-# ---------- Zi Wei: 命宫 ----------
 @app.route("/minggong", methods=["GET", "OPTIONS"])
 def get_ming_gong():
     if request.method == "OPTIONS":
         return ("", 204)
-
     birth_hour = int(request.args.get("hour", 8))
     gender = request.args.get("gender", "阳男")
-
     hour_branch = _get_hour_branch(birth_hour)
     if not hour_branch:
         return jsonify({"error": "Invalid hour"}), 400
-
     map_mg = {
         "子": "寅", "丑": "丑", "寅": "子", "卯": "亥",
         "辰": "戌", "巳": "酉", "午": "申", "未": "未",
         "申": "午", "酉": "巳", "戌": "辰", "亥": "卯",
     }
+    return jsonify({
+        "hour_branch": hour_branch,
+        "ming_gong": map_mg.get(hour_branch),
+        "gender": gender
+    })
 
-    return app.response_class(
-        response=json.dumps(
-            {"hour_branch": hour_branch, "ming_gong": map_mg.get(hour_branch), "gender": gender},
-            ensure_ascii=False, indent=2
-        ),
-        status=200,
-        mimetype="application/json",
-    )
-
-# ---------- Western Zodiac endpoint ----------
-@app.route("/zodiac", methods=["GET", "OPTIONS"])
-def zodiac_sign():
-    if request.method == "OPTIONS":
-        return ("", 204)
-
-    birthdate_str = request.args.get("birthdate", None)
-    if not birthdate_str:
-        return jsonify({"zodiac": "Unknown"})
-
-    try:
-        dt = datetime.strptime(birthdate_str, "%Y-%m-%d")
-    except ValueError:
-        return jsonify({"zodiac": "Invalid date format"})
-
-    return jsonify({"zodiac": _get_western_zodiac(dt.month, dt.day)})
-
-# ---------- Fortune (character + 7 lucky nums + partner date) ----------
+# ---------- Fortune ----------
 @app.route("/fortune", methods=["POST", "OPTIONS"])
 def fortune():
     if request.method == "OPTIONS":
         return ("", 204)
-
     try:
         data = request.get_json(silent=True) or {}
-        dob = data.get("dob")       # YYYY-MM-DD (required)
-        _time = data.get("time")    # HH:MM (optional)
-        gender = data.get("gender") # optional
+        dob = data.get("dob")
+        time = data.get("time")
+        gender = data.get("gender")
+        dob_date = datetime.strptime(dob, "%Y-%m-%d")
 
-        if not dob:
-            return jsonify({"error": "Missing 'dob' (YYYY-MM-DD)"}), 400
+        date_key = dob_date.strftime("%m-%d")
+        month, day = dob_date.month, dob_date.day
+        zodiac_sign = get_zodiac_sign(month, day)
 
-        birthdate = datetime.strptime(dob, "%Y-%m-%d")
-        month, day = birthdate.month, birthdate.day
-
-        # Profile by MM-DD key
-        birthday_key = f"{month:02d}-{day:02d}"
-        profile = birthday_profiles.get(birthday_key, {})
-
-        # Real zodiac + personality
-        zodiac = _get_western_zodiac(month, day)
         personality_map = {
             "Aries": "Bold and full of energy.",
             "Taurus": "Grounded and loyal.",
@@ -254,34 +172,33 @@ def fortune():
             "Sagittarius": "Adventurous and optimistic.",
             "Capricorn": "Disciplined and responsible.",
             "Aquarius": "Innovative and independent.",
-            "Pisces": "Compassionate and artistic.",
+            "Pisces": "Compassionate and artistic."
         }
-        personality = personality_map.get(zodiac, profile.get("character", "A unique spirit with untapped potential."))
+        personality = personality_map.get(zodiac_sign, "Unique and undefined.")
 
-        # Numerology pack
-        life_path = _life_path(birthdate)
-        lucky_numbers = _lucky_7(birthdate)                    # 7 unique (1..49)
-        lucky_score   = 70 + (sum(lucky_numbers) % 30)         # 70..99 stable-ish
-        lucky_day     = _partner_date(birthdate)               # auspicious date
-        partner_match = _partner_date(birthdate)               # relationship date
-        life_path_meaning = _LIFE_PATH_MEANINGS.get(life_path, "A unique force with uncommon traits.")
+        lucky_day = (dob_date.replace(year=datetime.now().year) + timedelta(days=random.randint(1, 60))).strftime("%Y-%m-%d")
+        lucky_score = random.randint(70, 99)
+
+        lucky_result = calculate_lucky_numbers(dob_date)
+        lucky_numbers = lucky_result["lucky_numbers"]
+        life_path = lucky_result["life_path"]
+        life_path_meaning = lucky_result["life_path_meaning"]
+
+        profile = birthday_profiles.get(date_key, {})
 
         return jsonify({
-            "zodiac": zodiac,
+            "zodiac": zodiac_sign,
             "personality": personality,
             "lucky_day": lucky_day,
-            "partner_match_date": partner_match,
             "score": lucky_score,
-            "lucky_numbers": lucky_numbers,         # <-- 7 numbers
+            "lucky_numbers": lucky_numbers,
             "life_path": life_path,
             "life_path_meaning": life_path_meaning,
-
-            # Enrichment from birthdays_full.json
             "character": profile.get("character", ""),
             "character_advice": profile.get("character_advice", ""),
             "love": profile.get("love", ""),
             "love_advice": profile.get("love_advice", ""),
-            "quote": profile.get("quote", "The stars whisper to those who listen."),
+            "quote": profile.get("quote", ""),
             "wealth": profile.get("wealth", ""),
             "wealth_advice": profile.get("wealth_advice", ""),
             "mindset": profile.get("mindset", ""),
@@ -291,35 +208,29 @@ def fortune():
             "habits": profile.get("habits", ""),
             "habits_insight": profile.get("habits_insight", ""),
             "creativity": profile.get("creativity", ""),
-            "creativity_advice": profile.get("creativity_advice", ""),
+            "creativity_advice": profile.get("creativity_advice", "")
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ---------- Destiny Oracle (poem) ----------
+# ---------- Oracle ----------
 @app.route("/oracle", methods=["POST", "OPTIONS"])
 def oracle():
-    # Handle preflight quickly
     if request.method == "OPTIONS":
         return ("", 204)
-
     try:
         data = request.get_json(silent=True) or {}
-        # Accept both naming styles from frontend
         dob = data.get("dob")
         tob = data.get("tob") or data.get("time")
         tz = data.get("tz") or data.get("timezone") or "Asia/Singapore"
-
-        # Minimal guardrails
         if not dob:
-            return jsonify({"error": "Missing 'dob' (YYYY-MM-DD)"}), 400
+            return jsonify({"error": "Missing 'dob'"}), 400
 
         prompt = (
             f"You are a mystical Oracle. Write a short poetic destiny insight "
             f"for someone born on {dob}" + (f" at {tob}" if tob else "") + f" ({tz}). "
             "Keep it evocative, 6–10 lines, gentle and encouraging."
         )
-
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt}],
@@ -330,15 +241,10 @@ def oracle():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# (Optional) quick health/version endpoints
+# ---------- Health ----------
 @app.get("/health")
 def health():
     return {"ok": True}
 
-@app.get("/version")
-def version():
-    return {"version": os.environ.get("RELEASE_SHA", "local-dev")}
-
-# Dev runner (Render uses gunicorn)
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
