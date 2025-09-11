@@ -245,6 +245,17 @@ def oracle():
 @app.get("/health")
 def health():
     return {"ok": True}
-
+# ---------- Zodiac (NEW) ----------
+@app.route("/zodiac", methods=["GET"])
+def zodiac():
+    birthdate = request.args.get("birthdate")
+    if not birthdate:
+        return jsonify({"error": "Missing 'birthdate' in YYYY-MM-DD format"}), 400
+    try:
+        dt = datetime.strptime(birthdate, "%Y-%m-%d")
+        sign = get_zodiac_sign(dt.month, dt.day)
+        return jsonify({"zodiac": sign})
+    except ValueError:
+        return jsonify({"error": "Invalid date format, use YYYY-MM-DD"}), 400
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
