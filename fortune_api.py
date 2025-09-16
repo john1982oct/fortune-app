@@ -207,6 +207,14 @@ def fortune():
         app.logger.exception("Error in /fortune")
         return jsonify({"error": str(e)}), 400
 
+# ---------- Ziwei Test (proxy for now) ----------
+@app.route("/ziwei_test", methods=["GET", "POST", "OPTIONS"])
+def ziwei_test():
+    """Temporary: call fortune() so front-end still gets results without Zi Wei extraction."""
+    if request.method == "OPTIONS":
+        return ("", 204)
+    return fortune()
+
 # ---------- Oracle ----------
 @app.route("/oracle", methods=["POST", "OPTIONS"])
 def oracle():
