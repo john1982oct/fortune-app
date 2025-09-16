@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from openai import OpenAI
 from flask_cors import CORS
 
-# OpenAI client
+# OpenAI client (needed for /oracle)
 client = OpenAI()
 
 app = Flask(__name__)
@@ -69,7 +69,7 @@ def get_zodiac_sign(month, day):
         ((9, 23), (10, 22), "Libra"),
         ((10, 23), (11, 21), "Scorpio"),
         ((11, 22), (12, 21), "Sagittarius"),
-        ((12, 22), (1, 19), "Capricorn")
+        ((12, 22), (1, 19), "Capricorn"),
     ]
     for start, end, sign in zodiac_dates:
         if (month == start[0] and day >= start[1]) or (month == end[0] and day <= end[1]):
@@ -89,7 +89,7 @@ life_path_meanings = {
     9: "Humanitarian dreamer. Uplifts others with wisdom and compassion.",
     11: "Spiritual illuminator. Inspires masses with intuition.",
     22: "Master builder. Turns big dreams into lasting legacies.",
-    33: "Compassionate teacher. Leads with unconditional love."
+    33: "Compassionate teacher. Leads with unconditional love.",
 }
 
 # ---------- Lucky Numbers ----------
@@ -117,7 +117,7 @@ def calculate_lucky_numbers(birthdate_obj):
     return {
         "lucky_numbers": final_nums,
         "life_path": life_path,
-        "life_path_meaning": life_path_meanings.get(life_path, "A unique force with uncommon traits.")
+        "life_path_meaning": life_path_meanings.get(life_path, "A unique force with uncommon traits."),
     }
 
 # ---------- Zi Wei Ming Gong ----------
@@ -154,7 +154,7 @@ def get_ming_gong():
     return jsonify({"hour_branch": hour_branch, "ming_gong": map_mg.get(hour_branch), "gender": gender})
 
 # ---------- Fortune ----------
-@app.route("/fortune", methods=["POST", "OPTIONS"])
+@app.route("/fortune", methods=["GET", "POST", "OPTIONS"])
 def fortune():
     if request.method == "OPTIONS":
         return ("", 204)
@@ -172,7 +172,7 @@ def fortune():
             "Leo": "Confident and charismatic.", "Virgo": "Practical and detail-oriented.",
             "Libra": "Balanced and social.", "Scorpio": "Passionate and intuitive.",
             "Sagittarius": "Adventurous and optimistic.", "Capricorn": "Disciplined and responsible.",
-            "Aquarius": "Innovative and independent.", "Pisces": "Compassionate and artistic."
+            "Aquarius": "Innovative and independent.", "Pisces": "Compassionate and artistic.",
         }
         personality = personality_map.get(zodiac_sign, "Unique and undefined.")
 
@@ -201,7 +201,7 @@ def fortune():
             "habits": profile.get("habits", ""),
             "habits_insight": profile.get("habits_insight", ""),
             "creativity": profile.get("creativity", ""),
-            "creativity_advice": profile.get("creativity_advice", "")
+            "creativity_advice": profile.get("creativity_advice", ""),
         })
     except Exception as e:
         app.logger.exception("Error in /fortune")
@@ -210,7 +210,7 @@ def fortune():
 # ---------- Ziwei Test (proxy for now) ----------
 @app.route("/ziwei_test", methods=["GET", "POST", "OPTIONS"])
 def ziwei_test():
-    """Temporary: call fortune() so front-end still gets results without Zi Wei extraction."""
+    """Temporary: reuse fortune() so the UI works without Zi Wei extraction yet."""
     if request.method == "OPTIONS":
         return ("", 204)
     return fortune()
@@ -249,7 +249,7 @@ def oracle():
 def health():
     return {"ok": True}
 
-# ---------- Zodiac (NEW) ----------
+# ---------- Zodiac (helper) ----------
 @app.route("/zodiac", methods=["GET"])
 def zodiac():
     birthdate = request.args.get("birthdate")
