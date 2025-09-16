@@ -11,10 +11,7 @@ app = Flask(__name__)
 
 # --- CORS
 ALLOWED_ORIGINS = {"https://aidoshop.com", "https://www.aidoshop.com"}
-CORS(
-    app,
-    resources={r"/*": {"origins": list(ALLOWED_ORIGINS)}},
-)
+CORS(app, resources={r"/*": {"origins": list(ALLOWED_ORIGINS)}})
 
 @app.after_request
 def add_cors_headers(resp):
@@ -47,10 +44,10 @@ def _parse_date_flex(s: str) -> datetime:
             return datetime.strptime(s.strip(), fmt)
         except ValueError:
             continue
-    raise ValueError(f"Invalid dob format: {s}. Expected YYYY-MM-DD or DD/MM/YYYY.")
+    raise ValueError(f"Invalid dob format: {s}")
 
 def _collect_payload():
-    """Merge JSON, form, and querystring into one dict."""
+    """Collect payload from JSON, form, or query params."""
     data = request.get_json(silent=True) or {}
     if not data:
         data = request.form.to_dict() or {}
@@ -111,17 +108,12 @@ def calculate_lucky_numbers(birthdate_obj):
     num4 = life_path * life_path
 
     all_nums = list(set([
-        life_path,
-        day,
-        month,
-        num1 % 100,
-        num2 % 100,
-        num3 % 100,
-        num4 % 100,
+        life_path, day, month,
+        num1 % 100, num2 % 100,
+        num3 % 100, num4 % 100,
     ]))
 
-    final_nums = sorted([n for n in all_nums if 1 <= n <= 49])[:7]  # 7 numbers
-
+    final_nums = sorted([n for n in all_nums if 1 <= n <= 49])[:7]
     return {
         "lucky_numbers": final_nums,
         "life_path": life_path,
@@ -159,11 +151,7 @@ def get_ming_gong():
         "辰": "戌", "巳": "酉", "午": "申", "未": "未",
         "申": "午", "酉": "巳", "戌": "辰", "亥": "卯",
     }
-    return jsonify({
-        "hour_branch": hour_branch,
-        "ming_gong": map_mg.get(hour_branch),
-        "gender": gender
-    })
+    return jsonify({"hour_branch": hour_branch, "ming_gong": map_mg.get(hour_branch), "gender": gender})
 
 # ---------- Fortune ----------
 @app.route("/fortune", methods=["POST", "OPTIONS"])
@@ -172,42 +160,30 @@ def fortune():
         return ("", 204)
     try:
         data = _collect_payload()
-        dob = data.get("dob")
-        time_str = data.get("time")
-        gender = data.get("gender")
+        dob_date = _parse_date_flex(data.get("dob"))
 
-        dob_date = _parse_date_flex(dob)
         date_key = dob_date.strftime("%m-%d")
         month, day = dob_date.month, dob_date.day
         zodiac_sign = get_zodiac_sign(month, day)
 
         personality_map = {
-            "Aries": "Bold and full of energy.",
-            "Taurus": "Grounded and loyal.",
-            "Gemini": "Curious and quick-witted.",
-            "Cancer": "Sensitive and nurturing.",
-            "Leo": "Confident and charismatic.",
-            "Virgo": "Practical and detail-oriented.",
-            "Libra": "Balanced and social.",
-            "Scorpio": "Passionate and intuitive.",
-            "Sagittarius": "Adventurous and optimistic.",
-            "Capricorn": "Disciplined and responsible.",
-            "Aquarius": "Innovative and independent.",
-            "Pisces": "Compassionate and artistic."
+            "Aries": "Bold and full of energy.", "Taurus": "Grounded and loyal.",
+            "Gemini": "Curious and quick-witted.", "Cancer": "Sensitive and nurturing.",
+            "Leo": "Confident and charismatic.", "Virgo": "Practical and detail-oriented.",
+            "Libra": "Balanced and social.", "Scorpio": "Passionate and intuitive.",
+            "Sagittarius": "Adventurous and optimistic.", "Capricorn": "Disciplined and responsible.",
+            "Aquarius": "Innovative and independent.", "Pisces": "Compassionate and artistic."
         }
         personality = personality_map.get(zodiac_sign, "Unique and undefined.")
 
         lucky_day = (dob_date.replace(year=datetime.now().year) + timedelta(days=random.randint(1, 60))).strftime("%Y-%m-%d")
         lucky_score = random.randint(70, 99)
-
         lucky_result = calculate_lucky_numbers(dob_date)
         profile = birthday_profiles.get(date_key, {})
 
         return jsonify({
-            "zodiac": zodiac_sign,
-            "personality": personality,
-            "lucky_day": lucky_day,
-            "score": lucky_score,
+            "zodiac": zodiac_sign, "personality": personality,
+            "lucky_day": lucky_day, "score": lucky_score,
             "lucky_numbers": lucky_result["lucky_numbers"],
             "life_path": lucky_result["life_path"],
             "life_path_meaning": lucky_result["life_path_meaning"],
@@ -273,8 +249,7 @@ def zodiac():
         return jsonify({"error": "Missing 'birthdate' in YYYY-MM-DD format"}), 400
     try:
         dt = datetime.strptime(birthdate, "%Y-%m-%d")
-        sign = get_zodiac_sign(dt.month, dt.day)
-        return jsonify({"zodiac": sign})
+        return jsonify({"zodiac": get_zodiac_sign(dt.month, dt.day)})
     except ValueError:
         return jsonify({"error": "Invalid date format, use YYYY-MM-DD"}), 400
 
