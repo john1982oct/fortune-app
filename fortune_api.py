@@ -37,6 +37,27 @@ try:
 except Exception:
     birthday_profiles = {}
 
+# ---------- Helpers ----------
+def _parse_date_flex(s: str) -> datetime:
+    """Accept YYYY-MM-DD, DD/MM/YYYY, or MM/DD/YYYY formats."""
+    if not s:
+        raise ValueError("Missing dob")
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y"):
+        try:
+            return datetime.strptime(s.strip(), fmt)
+        except ValueError:
+            continue
+    raise ValueError(f"Invalid dob format: {s}. Expected YYYY-MM-DD or DD/MM/YYYY.")
+
+def _collect_payload():
+    """Merge JSON, form, and querystring into one dict."""
+    data = request.get_json(silent=True) or {}
+    if not data:
+        data = request.form.to_dict() or {}
+    if not data:
+        data = request.args.to_dict() or {}
+    return data
+
 # ---------- Zodiac ----------
 def get_zodiac_sign(month, day):
     zodiac_dates = [
@@ -150,12 +171,12 @@ def fortune():
     if request.method == "OPTIONS":
         return ("", 204)
     try:
-        data = request.get_json(silent=True) or {}
+        data = _collect_payload()
         dob = data.get("dob")
-        time = data.get("time")
+        time_str = data.get("time")
         gender = data.get("gender")
-        dob_date = datetime.strptime(dob, "%Y-%m-%d")
 
+        dob_date = _parse_date_flex(dob)
         date_key = dob_date.strftime("%m-%d")
         month, day = dob_date.month, dob_date.day
         zodiac_sign = get_zodiac_sign(month, day)
@@ -180,10 +201,6 @@ def fortune():
         lucky_score = random.randint(70, 99)
 
         lucky_result = calculate_lucky_numbers(dob_date)
-        lucky_numbers = lucky_result["lucky_numbers"]
-        life_path = lucky_result["life_path"]
-        life_path_meaning = lucky_result["life_path_meaning"]
-
         profile = birthday_profiles.get(date_key, {})
 
         return jsonify({
@@ -191,9 +208,9 @@ def fortune():
             "personality": personality,
             "lucky_day": lucky_day,
             "score": lucky_score,
-            "lucky_numbers": lucky_numbers,
-            "life_path": life_path,
-            "life_path_meaning": life_path_meaning,
+            "lucky_numbers": lucky_result["lucky_numbers"],
+            "life_path": lucky_result["life_path"],
+            "life_path_meaning": lucky_result["life_path_meaning"],
             "character": profile.get("character", ""),
             "character_advice": profile.get("character_advice", ""),
             "love": profile.get("love", ""),
@@ -211,7 +228,8 @@ def fortune():
             "creativity_advice": profile.get("creativity_advice", "")
         })
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        app.logger.exception("Error in /fortune")
+        return jsonify({"error": str(e)}), 400
 
 # ---------- Oracle ----------
 @app.route("/oracle", methods=["POST", "OPTIONS"])
@@ -219,7 +237,7 @@ def oracle():
     if request.method == "OPTIONS":
         return ("", 204)
     try:
-        data = request.get_json(silent=True) or {}
+        data = _collect_payload()
         dob = data.get("dob")
         tob = data.get("tob") or data.get("time")
         tz = data.get("tz") or data.get("timezone") or "Asia/Singapore"
@@ -239,12 +257,14 @@ def oracle():
         message = response.choices[0].message.content.strip()
         return jsonify({"text": message})
     except Exception as e:
+        app.logger.exception("Error in /oracle")
         return jsonify({"error": str(e)}), 500
 
 # ---------- Health ----------
 @app.get("/health")
 def health():
     return {"ok": True}
+
 # ---------- Zodiac (NEW) ----------
 @app.route("/zodiac", methods=["GET"])
 def zodiac():
@@ -257,5 +277,6 @@ def zodiac():
         return jsonify({"zodiac": sign})
     except ValueError:
         return jsonify({"error": "Invalid date format, use YYYY-MM-DD"}), 400
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
