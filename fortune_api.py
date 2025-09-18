@@ -142,7 +142,7 @@ def compute_jiugong(dob_str: str, tob_str: str | None = None):
         "highlights": highlights
     }
 
-@app.route("/api/jiugong", methods=["POST", "OPTIONS"])
+@app.route("/api/jiugong", methods=["GET", "POST", "OPTIONS"])
 def api_jiugong():
     if request.method == "OPTIONS":
         return ("", 204)
